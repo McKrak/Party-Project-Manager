@@ -39,15 +39,22 @@ namespace PPManager
             }
             Directory.CreateDirectory(tempFolderPath);
 
-            CopyFilesTo(Settings.packagePath, tempFolderPath);
-
+            Dictionary<string, string> fileToPath = new();
+            // add to the dictionary, overwrite as necessary to minimize I/O interaction
+            foreach (string path in Directory.GetFiles(Settings.packagePath))
+            {
+                fileToPath.Add(Path.GetFileName(path), path);
+            }
             for (int i = 0; i < enabledMods.Length; i++)
             {
                 Mod mod = enabledMods[i];
                 UpdateProgress(i + 1, enabledMods.Length);
-                CopyFilesTo(mod.Path, tempFolderPath);
+                foreach (string item in Directory.GetFiles(mod.Path))
+                {
+                    fileToPath[Path.GetFileName(item)] = item;
+                }
             }
-
+            CopyFilesTo(fileToPath, tempFolderPath);
             File.Delete(Path.Combine(Settings.partyFolder, "package.nw"));
             ZipFile.CreateFromDirectory(tempFolderPath, Path.Combine(Settings.partyFolder, "package.nw"));
             Directory.Delete(tempFolderPath, true);
@@ -64,17 +71,15 @@ namespace PPManager
             });
         }
 
-        private void CopyFilesTo(string sourceFolder, string destFolder)
+        private void CopyFilesTo(Dictionary<string, string> sources, string destFolder)
         {
-            string[] files = Directory.GetFiles(sourceFolder);
-
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                Bar.Maximum = files.Length;
+                Bar.Maximum = sources.Count;
                 Bar.Value = 0;
             });
 
-            foreach (string file in files)
+            foreach (string file in sources.Values)
             {
                 string destinationFile = Path.Combine(destFolder, Path.GetFileName(file));
                 if (File.Exists(destinationFile))
