@@ -21,8 +21,14 @@ namespace PPManager
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public class Mod : INotifyPropertyChanged
         {
             public string? Name { get; set; }
@@ -45,10 +51,49 @@ namespace PPManager
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
+        public class Board
+        {
+            public string? Name { get; set; }
+            public string? RoomName {  get; set; }
+        }
+        public class Map
+        {
+            public string? Name { get; set; }
+        }
+
+        List<Mod> mods;
+        List<Board> boards = new List<Board>();
+        private ObservableCollection<Map> _maps = new ObservableCollection<Map>();
+        public ObservableCollection<Map> maps
+        {
+            get { return _maps; }
+            set
+            {
+                _maps = value;
+                OnPropertyChanged(nameof(maps));
+            }
+        }
+
+        private Board? _selectedBoard;
+        public Board? SelectedBoard
+        {
+            get { return _selectedBoard; }
+            set
+            {
+                _selectedBoard = value;
+                OnPropertyChanged(nameof(SelectedBoard));
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
+
+            DataContext = this;
+
             RefreshMods();
+            PopulateBoards();
+            PopulateMaps();
         }
         private void RefreshMods(object sender, RoutedEventArgs e) => RefreshMods();
         private void RefreshMods()
@@ -75,7 +120,65 @@ namespace PPManager
             ModsListView.ItemsSource = source.ToList();
             mods = new((IEnumerable<Mod>)ModsListView.ItemsSource);
         }
-        List<Mod> mods;
+
+        private void PopulateBoards()
+        {
+            string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
+            string dataJSData = File.ReadAllText(dataJSPath);
+            var dataJS = JsonDocument.Parse(dataJSData);
+
+            JsonElement project = dataJS.RootElement.GetProperty("project");
+
+            JsonElement boardsListSource = project[6][16][1][77][6];
+
+            for (int i = 1; i < boardsListSource.GetArrayLength() -1; i++)
+            {
+                boards.Add(new Board
+                {
+                    Name = boardsListSource[i][5][1][1][1][1].GetString(),
+                    RoomName = boardsListSource[i][5][1][2][1][1].GetString()
+                });
+
+            }
+            DataContext = this;
+            BoardListView.ItemsSource = boards;
+        }
+
+        private void BoardListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (BoardListView.SelectedItem != null)
+            {
+                SelectedBoard = (Board)BoardListView.SelectedItem;
+                Console.WriteLine(SelectedBoard.Name);
+            }
+        }
+
+        private void PopulateMaps()
+        {
+            string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
+            string dataJSData = File.ReadAllText(dataJSPath);
+            var dataJS = JsonDocument.Parse(dataJSData);
+
+            JsonElement project = dataJS.RootElement.GetProperty("project");
+
+            JsonElement mapsListSource = project[5];
+            maps.Clear();
+
+            for (int i = 0; i < mapsListSource.GetArrayLength(); i++)
+            {
+                if (mapsListSource[i][4].GetString() == "cd_board")
+                {
+                    maps.Add(new Map
+                    {
+                        Name = mapsListSource[i][0].GetString()
+                    });
+                }
+            }
+            DataContext = this;
+            MapListView.ItemsSource = maps;
+        }
+
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             return;
@@ -100,6 +203,19 @@ namespace PPManager
             Patch();
             Process.Start(Path.Combine(Settings.partyFolder, "nw.exe"));
             Environment.Exit(0);
+        }
+
+        private void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SelectedBoard != null)
+            {
+                var comboBox = sender as System.Windows.Controls.ComboBox;
+                // Update RoomName based on selected item or text input
+                if (comboBox != null)
+                {
+                    SelectedBoard.RoomName = comboBox.Text;
+                }
+            }
         }
     }
 }

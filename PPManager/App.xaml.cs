@@ -43,6 +43,7 @@ namespace PPManager
                 }
                 UnpackToPackage(Path.Combine(Settings.partyFolder, "package.nw"));
             }
+            
         }
         public static string GetPartyProjectFolder()
         {
