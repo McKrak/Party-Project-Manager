@@ -7,54 +7,90 @@
         mc:Ignorable="d"
         ResizeMode="NoResize"
         Title="Party Project Manager" Height="450" Width="504">
+    
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="108*"/>
-            <RowDefinition Height="109*"/>
-        </Grid.RowDefinitions>
-        <ListView Name="ModsListView" Margin="10,10,0,10" HorizontalAlignment="Left" Width="281.5" Grid.RowSpan="2">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="Name" Width="150">
-                        <GridViewColumn.CellTemplate>
+        <TabControl>
+            <TabItem Header="Mod List">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="108*"/>
+                        <RowDefinition Height="109*"/>
+                    </Grid.RowDefinitions>
+                    <ListView Name="ModsListView" Margin="10,10,0,10" HorizontalAlignment="Left" Width="281.5" Grid.RowSpan="2">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Name" Width="150">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Enabled?" Width="75">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Assets" Width="50">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Assets}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <StackPanel Margin="306,0,0,0" Grid.RowSpan="2">
+                        <StackPanel Height="177" Margin="20,20,20,20">
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Black">
+                                <Button Content="Refresh Contents" Click="RefreshMods"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Height="90" Margin="20,20,20,20">
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Black">
+                                <Button Content="Patch Mods" Click="Patch"/>
+                            </Border>
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Black">
+                                <Button Content="Patch Mods &amp; Run" Click="Patch_Run"/>
+                            </Border>
+                        </StackPanel>
+                        <ProgressBar Name="Progress" Height="22" Width="100" Value="50" Visibility="Hidden"/>
+                        <TextBlock Name="ModsInstalled" Text="Label" Width="91" HorizontalAlignment="Center" Visibility="Hidden"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Board Manager">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="108*"/>
+                        <RowDefinition Height="109*"/>
+                    </Grid.RowDefinitions>
+                    <ListView Name="BoardListView" Margin="10,10,0,10" HorizontalAlignment="Left" Width="281.5" Grid.RowSpan="2">
+                        <ListView.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Name}" />
                             </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="Enabled?" Width="75">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="Assets" Width="50">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Assets}" />
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                </GridView>
-            </ListView.View>
-        </ListView>
-        <StackPanel Margin="306,0,0,0" Grid.RowSpan="2">
-            <StackPanel Height="177" Margin="20,20,20,20">
-                <Border BorderThickness="2,2,2,2" BorderBrush="Black">
-                    <Button Content="Refresh Contents" Click="RefreshMods"/>
-                </Border>
-            </StackPanel>
-            <StackPanel Height="90" Margin="20,20,20,20">
-                <Border BorderThickness="2,2,2,2" BorderBrush="Black">
-                    <Button Content="Patch Mods" Click="Patch"/>
-                </Border>
-                <Border BorderThickness="2,2,2,2" BorderBrush="Black">
-                    <Button Content="Patch Mods &amp; Run" Click="Patch_Run"/>
-                </Border>
-            </StackPanel>
-            <ProgressBar Name="Progress" Height="22" Width="100" Value="50" Visibility="Hidden"/>
-            <TextBlock Name="ModsInstalled" Text="Label" Width="91" HorizontalAlignment="Center" Visibility="Hidden"/>
-        </StackPanel>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel Margin="306,0,0,0" Grid.RowSpan="2">
+                        <StackPanel Height="177" Margin="20,20,20,20">
+                            <Image Source="{Binding BoardImage}"></Image>
+                        </StackPanel>
+                        <StackPanel Height="90" Margin="20,20,20,20">
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Black">
+                                <Button Content="Patch Mods" Click="Patch"/>
+                            </Border>
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Black">
+                                <Button Content="Patch Mods &amp; Run" Click="Patch_Run"/>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
     </Grid>
 </Window>
