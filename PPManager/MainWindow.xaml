@@ -62,63 +62,75 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Board Manager">
-                <Grid>
-                    <TabControl>
-                        <TabItem Header="Board List">
-                            <Grid Margin="10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <ListView Name="BoardListView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" MouseLeftButtonUp="BoardListView_MouseLeftButtonUp" >
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" />
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="20"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <TabControl>
+                            <TabItem Header="Board List">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ListView Name="BoardListView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" SelectionChanged="BoardListView_SelectionChanged" >
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" />
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
 
-                                <StackPanel Grid.Column="1" Margin="10" Width="200">
-                                    <Label Content="Board Properties"/>
-                                    <TextBlock Text="{Binding SelectedBoard.Name}"/>
-                                    <TextBlock Text="{Binding SelectedBoard.RoomName}"/>
-                                    <ComboBox ItemsSource="{Binding maps}"
-                                      DisplayMemberPath="Name"
-                                      Text="{Binding SelectedBoard.RoomName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      IsEditable="True"
-                                      SelectionChanged="ComboBox_SelectionChanged"/>
-                                </StackPanel>
-                            </Grid>
-                        </TabItem>
-                        <TabItem Header="Map List">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="108*"/>
-                                    <RowDefinition Height="109*"/>
-                                </Grid.RowDefinitions>
-                                <ListView Name="MapListView" Margin="10,10,0,10" HorizontalAlignment="Left" Width="281.5" Grid.RowSpan="2">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" />
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
-                                <StackPanel Margin="306,0,0,0" Grid.RowSpan="2">
-                                    <StackPanel Height="177" Margin="20,20,20,20">
-                                        <Image Source="{Binding BoardImage}"></Image>
+                                    <StackPanel Grid.Column="1" Margin="10" Width="200">
+                                        <Label Content="Board Properties"/>
+                                        <TextBlock Text="{Binding SelectedBoard.Name}"/>
+                                        <Image x:Name="BoardImage"></Image>
+                                        <TextBlock Text="{Binding SelectedBoard.RoomName}"/>
+                                        <TextBlock Text="{Binding SelectedBoard.ID}"/>
+                                        <ComboBox ItemsSource="{Binding maps}"
+                                          DisplayMemberPath="Name"
+                                          Text="{Binding SelectedBoard.RoomName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEditable="True"
+                                          SelectionChanged="ComboBox_SelectionChanged"/>
                                     </StackPanel>
-                                    <StackPanel Height="90" Margin="20,20,20,20">
-                                        <Border BorderThickness="2,2,2,2" BorderBrush="Purple">
-                                            <Button Content="Patch Mods" Click="Patch"/>
-                                        </Border>
-                                        <Border BorderThickness="2,2,2,2" BorderBrush="Black">
-                                            <Button Content="Patch Mods &amp; Run" Click="Patch_Run"/>
-                                        </Border>
+                                </Grid>
+
+                            </TabItem>
+                            <TabItem Header="Map List">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="108*"/>
+                                        <RowDefinition Height="109*"/>
+                                    </Grid.RowDefinitions>
+                                    <ListView Name="MapListView" Margin="10,10,0,10" HorizontalAlignment="Left" Width="281.5" Grid.RowSpan="2">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" />
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                    <StackPanel Margin="306,0,0,0" Grid.RowSpan="2">
+                                        <StackPanel Height="177" Margin="20,20,20,20">
+                                            <Image Source="{Binding BoardImage}"></Image>
+                                        </StackPanel>
+                                        <StackPanel Height="90" Margin="20,20,20,20">
+                                            <Border BorderThickness="2,2,2,2" BorderBrush="Purple">
+                                                <Button Content="Patch Mods" Click="Patch"/>
+                                            </Border>
+                                            <Border BorderThickness="2,2,2,2" BorderBrush="Black">
+                                                <Button Content="Patch Mods &amp; Run" Click="Patch_Run"/>
+                                            </Border>
+                                        </StackPanel>
                                     </StackPanel>
-                                </StackPanel>
-                            </Grid>
-                        </TabItem>
-                    </TabControl>
+                                </Grid>
+                            </TabItem>
+                        </TabControl>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <Button Content="Save data.js" Click="SaveDataJS"/>
+                    </Grid>
                 </Grid>
             </TabItem>
         </TabControl>

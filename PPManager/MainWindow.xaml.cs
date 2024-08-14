@@ -7,6 +7,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -14,6 +16,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 
 namespace PPManager
@@ -54,7 +57,9 @@ namespace PPManager
         public class Board
         {
             public string? Name { get; set; }
-            public string? RoomName {  get; set; }
+            public string? RoomName { get; set; }
+            public int ID { get; set; }
+            public string? Data { get; set; }
         }
         public class Map
         {
@@ -125,30 +130,43 @@ namespace PPManager
         {
             string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
             string dataJSData = File.ReadAllText(dataJSPath);
-            var dataJS = JsonDocument.Parse(dataJSData);
+            JsonDocument dataJS = JsonDocument.Parse(dataJSData);
 
             JsonElement project = dataJS.RootElement.GetProperty("project");
-
             JsonElement boardsListSource = project[6][16][1][77][6];
 
-            for (int i = 1; i < boardsListSource.GetArrayLength() -1; i++)
+            for (int i = 1; i < boardsListSource.GetArrayLength() - 1; i++)
             {
                 boards.Add(new Board
                 {
-                    Name = boardsListSource[i][5][1][1][1][1].GetString(),
-                    RoomName = boardsListSource[i][5][1][2][1][1].GetString()
+                    Name = boardsListSource[i][5][1][1][1][1].ToString(),
+                    RoomName = boardsListSource[i][5][1][2][1][1].ToString(),
+                    ID = i,
+                    Data = boardsListSource[i].ToString()
                 });
-
             }
+
             DataContext = this;
             BoardListView.ItemsSource = boards;
         }
 
-        private void BoardListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void SaveDataJS(object sender, RoutedEventArgs e)
+        {
+
+            System.Windows.MessageBox.Show(
+            "Mods patched successfully.",
+            "Success",
+            MessageBoxButton.OK);
+        }
+
+        private void BoardListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (BoardListView.SelectedItem != null)
             {
                 SelectedBoard = (Board)BoardListView.SelectedItem;
+                Uri baseUri = new Uri(Settings.packagePath + "/");
+
+                BoardImage.Source = new BitmapImage(new Uri(baseUri, "boardthumb-default-" + SelectedBoard.ID.ToString("D3") + ".jpg"));
                 Console.WriteLine(SelectedBoard.Name);
             }
         }
