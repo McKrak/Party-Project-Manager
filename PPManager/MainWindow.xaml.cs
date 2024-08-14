@@ -18,6 +18,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace PPManager
 {
@@ -32,6 +34,23 @@ namespace PPManager
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        private JObject? _dataJS;
+
+        private JObject LoadDataJS()
+        {
+            if (_dataJS == null)
+            {
+                string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
+                string dataJSData = File.ReadAllText(dataJSPath);
+                _dataJS = JObject.Parse(dataJSData);
+            }
+            return _dataJS;
+        }
+
+        private void ClearDataJS()
+        {
+            _dataJS = null;
+        }
         public class Mod : INotifyPropertyChanged
         {
             public string? Name { get; set; }
@@ -93,12 +112,15 @@ namespace PPManager
         public MainWindow()
         {
             InitializeComponent();
+            LoadDataJS();
 
             DataContext = this;
 
             RefreshMods();
             PopulateBoards();
             PopulateMaps();
+
+            ClearDataJS();
         }
         private void RefreshMods(object sender, RoutedEventArgs e) => RefreshMods();
         private void RefreshMods()
@@ -128,22 +150,24 @@ namespace PPManager
 
         private void PopulateBoards()
         {
-            string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
-            string dataJSData = File.ReadAllText(dataJSPath);
-            JsonDocument dataJS = JsonDocument.Parse(dataJSData);
+            //Parse into Jobject
+            JObject dataJS = LoadDataJS();
+            JToken? project = dataJS["project"];
 
-            JsonElement project = dataJS.RootElement.GetProperty("project");
-            JsonElement boardsListSource = project[6][16][1][77][6];
+            JToken? boardsListSource = project?[6]?[16]?[1]?[77]?[6];
 
-            for (int i = 1; i < boardsListSource.GetArrayLength() - 1; i++)
+            if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
             {
-                boards.Add(new Board
+                for (int i = 1; i < boardsListSource.Count() - 1; i++)
                 {
-                    Name = boardsListSource[i][5][1][1][1][1].ToString(),
-                    RoomName = boardsListSource[i][5][1][2][1][1].ToString(),
-                    ID = i,
-                    Data = boardsListSource[i].ToString()
-                });
+                    JToken? board = boardsListSource[i];
+                    boards.Add(new Board
+                    {
+                        Name = board?[5]?[1]?[1]?[1]?[1]?.ToString(),
+                        RoomName = board?[5]?[1]?[2]?[1]?[1]?.ToString(),
+                        ID = i
+                    });
+                }
             }
 
             DataContext = this;
@@ -152,6 +176,26 @@ namespace PPManager
 
         private void SaveDataJS(object sender, RoutedEventArgs e)
         {
+            string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
+
+            //Parse into Jobject
+            JObject dataJS = LoadDataJS();
+            JToken? project = dataJS["project"];
+
+            JToken? boardsListSource = project?[6]?[16]?[1]?[77]?[6];
+
+            if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
+            {
+                for (int i = 1; i < boardsListSource.Count() - 1; i++)
+                {
+                    JToken? board = boardsListSource[i];
+
+                    board?[5]?[1]?[1]?[1]?[1]?.Replace(boards?[i-1].Name?.ToString());
+                    board?[5]?[1]?[2]?[1]?[1]?.Replace(boards?[i - 1].RoomName?.ToString());
+                }
+            }
+
+            File.WriteAllText(dataJSPath, dataJS.ToString());
 
             System.Windows.MessageBox.Show(
             "Mods patched successfully.",
@@ -173,22 +217,20 @@ namespace PPManager
 
         private void PopulateMaps()
         {
-            string dataJSPath = Path.Combine(Settings.packagePath, "data.js");
-            string dataJSData = File.ReadAllText(dataJSPath);
-            var dataJS = JsonDocument.Parse(dataJSData);
+            JObject dataJS = LoadDataJS();
 
-            JsonElement project = dataJS.RootElement.GetProperty("project");
+            JToken? project = dataJS["project"];
 
-            JsonElement mapsListSource = project[5];
+            JToken? mapsListSource = project?[5];
             maps.Clear();
 
-            for (int i = 0; i < mapsListSource.GetArrayLength(); i++)
+            for (int i = 0; i < mapsListSource?.Count(); i++)
             {
-                if (mapsListSource[i][4].GetString() == "cd_board")
+                if (mapsListSource?[i]?[4]?.ToString() == "cd_board")
                 {
                     maps.Add(new Map
                     {
-                        Name = mapsListSource[i][0].GetString()
+                        Name = mapsListSource?[i]?[0]?.ToString()
                     });
                 }
             }
