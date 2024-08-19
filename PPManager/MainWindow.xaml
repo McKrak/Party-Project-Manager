@@ -65,7 +65,8 @@
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0">
                         <TabControl>
@@ -82,19 +83,43 @@
                                             </DataTemplate>
                                         </ListView.ItemTemplate>
                                     </ListView>
-
-                                    <StackPanel Grid.Column="1" Margin="10" Width="200">
-                                        <Label Content="Board Properties"/>
-                                        <TextBlock Text="{Binding SelectedBoard.Name}"/>
-                                        <Image x:Name="BoardImage"></Image>
-                                        <TextBlock Text="{Binding SelectedBoard.RoomName}"/>
-                                        <TextBlock Text="{Binding SelectedBoard.ID}"/>
-                                        <ComboBox ItemsSource="{Binding maps}"
-                                          DisplayMemberPath="Name"
-                                          Text="{Binding SelectedBoard.RoomName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          IsEditable="True"
-                                          SelectionChanged="ComboBox_SelectionChanged"/>
-                                    </StackPanel>
+                                    <ScrollViewer Grid.Column="1" Width="200">
+                                        <StackPanel Margin="10">
+                                            <Label Content="Board Properties"/>
+                                            <Label Content="Board Name"/>
+                                            <TextBox Text="{Binding SelectedBoard.Name}"/>
+                                            <Image x:Name="BoardImage"></Image>
+                                            <Button Content="Replace Image..." Click="ReplaceBoardImage"/>
+                                            <TextBlock Text="{Binding SelectedBoard.RoomName}"/>
+                                            <TextBlock Text="{Binding SelectedBoard.ID}"/>
+                                            <Label Content="Map File"/>
+                                            <ComboBox ItemsSource="{Binding maps}"
+                                              DisplayMemberPath="Name"
+                                              Text="{Binding SelectedBoard.RoomName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"
+                                              SelectionChanged="ComboBox_SelectionChanged"/>
+                                            <Label Content="BGM (Normal)"/>
+                                            <ComboBox ItemsSource="{Binding musicTracks}"
+                                              Text="{Binding SelectedBoard.BGM, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"
+                                              SelectionChanged="ComboBox_MusicSelectionChanged"/>
+                                            <Label Content="BGM (Pinch)"/>
+                                            <ComboBox ItemsSource="{Binding musicTracks}"
+                                              Text="{Binding SelectedBoard.BGMPinch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"
+                                              SelectionChanged="ComboBox_MusicSelectionChanged"/>
+                                            <Label Content="BGM (Night)"/>
+                                            <ComboBox ItemsSource="{Binding musicTracks}"
+                                              Text="{Binding SelectedBoard.BGMNight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"
+                                              SelectionChanged="ComboBox_MusicSelectionChanged"/>
+                                            <Label Content="Description"/>
+                                            <TextBox Text="{Binding SelectedBoard.Desc}"/>
+                                            <Label Content="Gimmicks"/>
+                                            <CheckBox Content="Classic? (Has Star Spawning)" IsChecked="{Binding SelectedBoard.TypeClassic}"/>
+                                            <CheckBox Content="Day/Night Cycle?" IsChecked="{Binding SelectedBoard.TypeDayNight}"/>
+                                        </StackPanel>
+                                    </ScrollViewer>
                                 </Grid>
 
                             </TabItem>
@@ -126,9 +151,40 @@
                                     </StackPanel>
                                 </Grid>
                             </TabItem>
+                            <TabItem Header="Music">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ListView Name="MusicListView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" SelectionChanged="MusicListView_SelectionChanged" >
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" />
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+
+                                    <StackPanel Grid.Column="1" Margin="10" Width="200">
+                                        <Label Content="Music Properties"/>
+                                        <TextBlock Text="{Binding SelectedMusic}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                            </TabItem>
                         </TabControl>
                     </Grid>
                     <Grid Grid.Row="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width=".5*"/>
+                                <ColumnDefinition Width=".5*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="Add Board(s)..." Grid.Column="0" Click="LoadExternalBoardData"/>
+                            <Button Content="Delete Selected" Grid.Column="1"/>
+                        </Grid>
+                    </Grid>
+                    <Grid Grid.Row="2">
                         <Button Content="Save data.js" Click="SaveDataJS"/>
                     </Grid>
                 </Grid>

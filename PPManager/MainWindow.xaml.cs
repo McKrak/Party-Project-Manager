@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -50,6 +51,12 @@ namespace PPManager
         private void ClearDataJS()
         {
             _dataJS = null;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect();
         }
         public class Mod : INotifyPropertyChanged
         {
@@ -78,6 +85,15 @@ namespace PPManager
             public string? Name { get; set; }
             public string? RoomName { get; set; }
             public int ID { get; set; }
+
+            public string? BGM { get; set; }
+            public string? BGMPinch { get; set; }
+            public string? BGMNight {  get; set; }
+
+            public bool? TypeClassic { get; set; }
+            public bool? TypeDayNight { get; set; }
+            public string? Desc {  get; set; }
+
             public string? Data { get; set; }
         }
         public class Map
@@ -97,6 +113,16 @@ namespace PPManager
                 OnPropertyChanged(nameof(maps));
             }
         }
+        private ObservableCollection<string> _musicTracks = new ObservableCollection<string>();
+        public ObservableCollection<string> musicTracks
+        {
+            get { return _musicTracks; }
+            set
+            {
+                _musicTracks = value;
+                OnPropertyChanged(nameof(musicTracks));
+            }
+        }
 
         private Board? _selectedBoard;
         public Board? SelectedBoard
@@ -106,6 +132,17 @@ namespace PPManager
             {
                 _selectedBoard = value;
                 OnPropertyChanged(nameof(SelectedBoard));
+            }
+        }
+
+        private string? _selectedMusic;
+        public string? SelectedMusic
+        {
+            get { return _selectedMusic; }
+            set
+            {
+                _selectedMusic = value;
+                OnPropertyChanged(nameof(SelectedMusic));
             }
         }
 
@@ -119,6 +156,7 @@ namespace PPManager
             RefreshMods();
             PopulateBoards();
             PopulateMaps();
+            PopulateMusic();
 
             ClearDataJS();
         }
@@ -146,11 +184,12 @@ namespace PPManager
             DataContext = this;
             ModsListView.ItemsSource = source.ToList();
             mods = new((IEnumerable<Mod>)ModsListView.ItemsSource);
+
         }
 
         private void PopulateBoards()
         {
-            //Parse into Jobject
+            //Parse into Jobject and convert data to board objects
             JObject dataJS = LoadDataJS();
             JToken? project = dataJS["project"];
 
@@ -161,10 +200,51 @@ namespace PPManager
                 for (int i = 1; i < boardsListSource.Count() - 1; i++)
                 {
                     JToken? board = boardsListSource[i];
+
+                    JToken? gimmicks = board?[5]?[1]?[6]?[1]?[1];
+
+                    bool isClassic = false;
+                    bool isDayNight = false;
+
+                    if (gimmicks != null && gimmicks.Type == JTokenType.Array)
+                    {
+                        if (gimmicks?[0]?.ToObject<int>() == 10)
+                        {
+                            for (int j = 1; j < gimmicks?.Count(); j++)
+                            {
+                                if (gimmicks?[j]?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
+                                {
+                                    isClassic = true;
+                                }
+                                else if (gimmicks?[j]?[1]?.ToString() == "STG_DAYNIGHT")
+                                {
+                                    isDayNight = true;
+                                }
+                            }
+                        } 
+                        else if (gimmicks?[0]?.ToObject<int>() == 23)
+                        {
+                            if (gimmicks?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
+                            {
+                                isClassic = true;
+                            }
+                            else if (gimmicks?[1]?.ToString() == "STG_DAYNIGHT")
+                            {
+                                isDayNight = true;
+                            }
+                        }
+                    }
+
                     boards.Add(new Board
                     {
                         Name = board?[5]?[1]?[1]?[1]?[1]?.ToString(),
                         RoomName = board?[5]?[1]?[2]?[1]?[1]?.ToString(),
+                        BGM = board?[5]?[1]?[3]?[1]?[1]?.ToString(),
+                        BGMPinch = board?[5]?[1]?[4]?[1]?[1]?.ToString(),
+                        BGMNight = board?[5]?[1]?[5]?[1]?[1]?.ToString(),
+                        Desc = board?[5]?[1]?[6]?[1]?[2]?[1]?.ToString(),
+                        TypeClassic = isClassic,
+                        TypeDayNight = isDayNight,
                         ID = i
                     });
                 }
@@ -182,6 +262,7 @@ namespace PPManager
             JObject dataJS = LoadDataJS();
             JToken? project = dataJS["project"];
 
+            //First, we add the board entries for each board
             JToken? boardsListSource = project?[6]?[16]?[1]?[77]?[6];
 
             if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
@@ -189,11 +270,42 @@ namespace PPManager
                 for (int i = 1; i < boardsListSource.Count() - 1; i++)
                 {
                     JToken? board = boardsListSource[i];
+                    Board? source = boards?[i - 1];
 
-                    board?[5]?[1]?[1]?[1]?[1]?.Replace(boards?[i-1].Name?.ToString());
-                    board?[5]?[1]?[2]?[1]?[1]?.Replace(boards?[i - 1].RoomName?.ToString());
+                    board?[5]?[1]?[1]?[1]?[1]?.Replace(source?.Name?.ToString());
+                    board?[5]?[1]?[2]?[1]?[1]?.Replace(source?.RoomName?.ToString());
+                    board?[5]?[1]?[3]?[1]?[1]?.Replace(source?.BGM?.ToString());
+                    board?[5]?[1]?[4]?[1]?[1]?.Replace(source?.BGMPinch?.ToString());
+                    board?[5]?[1]?[5]?[1]?[1]?.Replace(source?.BGMNight?.ToString());
+                    board?[5]?[1]?[6]?[1]?[2]?[1]?.Replace(source?.Desc?.ToString());
+                    if (boards?[i - 1].TypeDayNight == true)
+                    {
+                        JArray gimmicks = new JArray(10, new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC"), new JArray(23, "STG_DAYNIGHT"));
+                        board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
+                    } else
+                    {
+                        JArray gimmicks = new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC");
+                        board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
+                    }
                 }
             }
+
+            //Then, we configure the board list in the party menu so there's enough for each board
+            JToken? boardSelectTextures = project?[3]?[493]?[7]?[0]?[7];
+            JToken? boardSelectButtons = project?[5]?[222]?[6]?[1]?[14];
+            int boardButtonCount = 0;
+
+            //for (int i = 0; i < boardSelectButtons?.Count(); i++)
+            //{
+            //    if (boardSelectButtons?[i]?[1]?.ToObject<int>() == 493)
+            //    {
+            //        boardButtonCount++;
+            //        if (boardButtonCount < boards.Count())
+            //        {
+
+            //        }
+            //    }
+            //}
 
             File.WriteAllText(dataJSPath, dataJS.ToString());
 
@@ -201,18 +313,6 @@ namespace PPManager
             "Mods patched successfully.",
             "Success",
             MessageBoxButton.OK);
-        }
-
-        private void BoardListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (BoardListView.SelectedItem != null)
-            {
-                SelectedBoard = (Board)BoardListView.SelectedItem;
-                Uri baseUri = new Uri(Settings.packagePath + "/");
-
-                BoardImage.Source = new BitmapImage(new Uri(baseUri, "boardthumb-default-" + SelectedBoard.ID.ToString("D3") + ".jpg"));
-                Console.WriteLine(SelectedBoard.Name);
-            }
         }
 
         private void PopulateMaps()
@@ -238,8 +338,21 @@ namespace PPManager
             MapListView.ItemsSource = maps;
         }
 
+        private void PopulateMusic()
+        {
+            foreach (string f in Directory.GetFiles(Settings.packagePath, "*.ogg"))
+            {
+                musicTracks.Add(Path.GetFileName(f));
+            }
+            DataContext = this;
+            MusicListView.ItemsSource = musicTracks;
+        }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+
+
+
+
+            private void Button_Click(object sender, RoutedEventArgs e)
         {
             return;
         }
@@ -270,11 +383,81 @@ namespace PPManager
             if (SelectedBoard != null)
             {
                 var comboBox = sender as System.Windows.Controls.ComboBox;
-                // Update RoomName based on selected item or text input
                 if (comboBox != null)
                 {
                     SelectedBoard.RoomName = comboBox.Text;
                 }
+            }
+        }
+
+        private void ComboBox_MusicSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SelectedMusic != null)
+            {
+                var comboBox = sender as System.Windows.Controls.ComboBox;
+                if (comboBox != null)
+                {
+                    SelectedMusic = comboBox.Text;
+                }
+            }
+        }
+
+        private void BoardListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (BoardListView.SelectedItem != null)
+            {
+                SelectedBoard = (Board)BoardListView.SelectedItem;
+                Uri baseUri = new Uri(Settings.packagePath + "/");
+
+                BoardImage.Source = new BitmapImage(new Uri(baseUri, "boardthumb-default-" + SelectedBoard.ID.ToString("D3") + ".jpg"));
+                Console.WriteLine(SelectedBoard.Name);
+            }
+        }
+
+        private void MusicListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (MusicListView.SelectedItem != null)
+            {
+                SelectedMusic = (string)MusicListView.SelectedItem;
+            }
+        }
+
+        private void ReplaceBoardImage(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void LoadExternalBoardData(object sender, RoutedEventArgs e)
+        {
+            using OpenFileDialog fileDialog = new OpenFileDialog();
+            {
+                fileDialog.InitialDirectory = Settings.partyFolder;
+                fileDialog.Filter = ".json files (*.json)|*.json";
+                fileDialog.FilterIndex = 0;
+                fileDialog.Multiselect = true;
+                fileDialog.RestoreDirectory = true;
+
+                if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    for (int i = 0; i < fileDialog.FileNames.Length; i++)
+                    {
+                        Console.WriteLine(fileDialog.FileNames[i]);
+                    }
+
+                }
+
+                //string selectedPath = fileDialog.SelectedPath;
+                //bool jsonExists = File.Exists(Path.Combine(selectedPath, "package.nw"));
+                //bool executableExists = File.Exists(Path.Combine(selectedPath, "nw.exe"));
+                //if (packageExists && executableExists)
+                //{
+                //    return selectedPath;
+                //}
+                //System.Windows.MessageBox.Show(
+                //$"package.nw: {(packageExists ? '✔' : '❌')}\nnw.exe: {(executableExists ? '✔' : '❌')}\nTests failed. Please choose the directory that contains Party Project.",
+                //"Directory Tests",
+                //MessageBoxButton.OK,
+                //MessageBoxImage.Error);
             }
         }
     }
