@@ -88,17 +88,18 @@ namespace PPManager
 
             public string? BGM { get; set; }
             public string? BGMPinch { get; set; }
-            public string? BGMNight {  get; set; }
+            public string? BGMNight { get; set; }
 
             public bool? TypeClassic { get; set; }
             public bool? TypeDayNight { get; set; }
-            public string? Desc {  get; set; }
+            public string? Desc { get; set; }
 
             public string? Data { get; set; }
         }
         public class Map
         {
             public string? Name { get; set; }
+            public int? Index { get; set; }
         }
 
         List<Mod> mods;
@@ -143,6 +144,17 @@ namespace PPManager
             {
                 _selectedMusic = value;
                 OnPropertyChanged(nameof(SelectedMusic));
+            }
+        }
+
+        private Map? _selectedMap;
+        public Map? SelectedMap
+        {
+            get { return _selectedMap; }
+            set
+            {
+                _selectedMap = value;
+                OnPropertyChanged(nameof(SelectedMap));
             }
         }
 
@@ -193,7 +205,7 @@ namespace PPManager
             JObject dataJS = LoadDataJS();
             JToken? project = dataJS["project"];
 
-            JToken? boardsListSource = project?[6]?[16]?[1]?[77]?[6];
+            JToken? boardsListSource = project?[6]?[16]?[1]?[92]?[6];
 
             if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
             {
@@ -221,7 +233,7 @@ namespace PPManager
                                     isDayNight = true;
                                 }
                             }
-                        } 
+                        }
                         else if (gimmicks?[0]?.ToObject<int>() == 23)
                         {
                             if (gimmicks?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
@@ -263,7 +275,7 @@ namespace PPManager
             JToken? project = dataJS["project"];
 
             //First, we add the board entries for each board
-            JToken? boardsListSource = project?[6]?[16]?[1]?[77]?[6];
+            JToken? boardsListSource = project?[6]?[16]?[1]?[92]?[6];
 
             if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
             {
@@ -282,7 +294,8 @@ namespace PPManager
                     {
                         JArray gimmicks = new JArray(10, new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC"), new JArray(23, "STG_DAYNIGHT"));
                         board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
-                    } else
+                    }
+                    else
                     {
                         JArray gimmicks = new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC");
                         board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
@@ -330,12 +343,71 @@ namespace PPManager
                 {
                     maps.Add(new Map
                     {
-                        Name = mapsListSource?[i]?[0]?.ToString()
+                        Name = mapsListSource?[i]?[0]?.ToString(),
+                        Index = i
                     });
                 }
             }
             DataContext = this;
             MapListView.ItemsSource = maps;
+        }
+
+        private void ExtractMap(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                JObject dataJS = LoadDataJS();
+                JToken? project = dataJS["project"];
+                JToken? mapsListSource = project?[5];
+                JToken? map = mapsListSource?[SelectedMap.Index]?[6]?[1];
+                JToken? spaceList = map?[14];
+
+                string schemaJSPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/Schema/98_3.schema");
+                string schemaJSData = File.ReadAllText(schemaJSPath);
+                JObject schemaJS = JObject.Parse(schemaJSData);
+
+                JToken? schema = schemaJS["objectSchema"];
+                Console.WriteLine(schema);
+                for (int i = 0; i < spaceList?.Count(); i++)
+                {
+                    for (int j = 0; j < schema?.Count(); j++)
+                    {
+                        Console.WriteLine(spaceList?[i]?[1]);
+                        Console.WriteLine(schema?[j]?[1]);
+                        if (spaceList?[i]?[1]?.ToString() == (schema?[j]?[1]?.ToString()))
+                        {
+                            spaceList?[i]?[1]?.Replace(schema?[j]?[0]?.ToString());
+                        }
+                    }
+                }
+                dynamic ppbJS = new JObject();
+                ppbJS.spaceList = spaceList;
+                SaveToPPB(ppbJS);
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        private void SaveToPPB(JObject? _map)
+        {
+            using SaveFileDialog fileDialog = new SaveFileDialog();
+            {
+                fileDialog.InitialDirectory = Settings.partyFolder;
+                fileDialog.Filter = ".Party Project Board (*.ppb)|*.ppb";
+                fileDialog.FilterIndex = 0;
+                fileDialog.FileName = SelectedMap?.Name;
+                fileDialog.RestoreDirectory = true;
+
+                if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    File.WriteAllText(fileDialog.FileName, _map?.ToString());
+
+                }
+            }
         }
 
         private void PopulateMusic()
@@ -352,7 +424,7 @@ namespace PPManager
 
 
 
-            private void Button_Click(object sender, RoutedEventArgs e)
+        private void Button_Click(object sender, RoutedEventArgs e)
         {
             return;
         }
@@ -389,7 +461,6 @@ namespace PPManager
                 }
             }
         }
-
         private void ComboBox_MusicSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SelectedMusic != null)
@@ -411,6 +482,13 @@ namespace PPManager
 
                 BoardImage.Source = new BitmapImage(new Uri(baseUri, "boardthumb-default-" + SelectedBoard.ID.ToString("D3") + ".jpg"));
                 Console.WriteLine(SelectedBoard.Name);
+            }
+        }
+        private void MapListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (MapListView.SelectedItem != null)
+            {
+                SelectedMap = (Map)MapListView.SelectedItem;
             }
         }
 
