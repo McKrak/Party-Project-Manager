@@ -358,6 +358,8 @@ namespace PPManager
             {
                 JObject dataJS = LoadDataJS();
                 JToken? project = dataJS["project"];
+                dynamic ppbJS = new JObject();
+
                 JToken? mapsListSource = project?[5];
                 JToken? map = mapsListSource?[SelectedMap.Index]?[6]?[1];
                 JToken? spaceList = map?[14];
@@ -365,9 +367,9 @@ namespace PPManager
                 string schemaJSPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/Schema/98_3.schema");
                 string schemaJSData = File.ReadAllText(schemaJSPath);
                 JObject schemaJS = JObject.Parse(schemaJSData);
-
                 JToken? schema = schemaJS["objectSchema"];
                 Console.WriteLine(schema);
+
                 for (int i = 0; i < spaceList?.Count(); i++)
                 {
                     for (int j = 0; j < schema?.Count(); j++)
@@ -380,8 +382,31 @@ namespace PPManager
                         }
                     }
                 }
-                dynamic ppbJS = new JObject();
                 ppbJS.spaceList = spaceList;
+
+                List<string> BGList = new List<string> { };
+
+                JToken? mapBGSource = mapsListSource?[SelectedMap.Index]?[6]?[0]?[14]?[0]?[1];
+                int? mapBGID = mapBGSource?.ToObject<int>();
+                if (mapBGID != null) {
+                    JToken? mapBGList = project?[3]?[mapBGID]?[7]?[0]?[7];
+                    if (mapBGList != null)
+                    {
+                        for (int i = 0; i <  mapBGList?.Count(); i++)
+                        {
+                            string imagePath = Path.Combine(Settings.packagePath, mapBGList?[i]?[0]?.ToObject<string>());
+                            Console.WriteLine(imagePath);
+                            if (File.Exists(imagePath))
+                            {
+                                Byte[] bytes = File.ReadAllBytes(imagePath);
+                                string imB64 = Convert.ToBase64String(bytes);
+                                Console.WriteLine(imB64);
+                                BGList.Add(imB64);
+                            }
+                        }
+                    }
+                }
+                ppbJS.BGList = JToken.FromObject(BGList);
                 SaveToPPB(ppbJS);
 
 
