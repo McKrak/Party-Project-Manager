@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -46,6 +47,28 @@ namespace PPManager
                 _dataJS = JObject.Parse(dataJSData);
             }
             return _dataJS;
+        }
+
+        private JObject? _schemaJS;
+        private JObject LoadSchema()
+        {
+            if ((_schemaJS == null) && (_dataJS != null)) {
+                JToken? versionEntry = _dataJS?["project"]?[16];
+                if (versionEntry != null)
+                {
+                    string version = versionEntry.ToString().Split('-')[0].Replace('.','_');
+                    string schemaJSPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"Resources/Schema/{version}.schema");
+                    string schemaJSData = File.ReadAllText(schemaJSPath);
+                    _schemaJS = JObject.Parse(schemaJSData);
+                } 
+                else
+                {
+                    System.Windows.MessageBox.Show("This Party Project installation " +
+                        "is either corrupt, or unsupported as of right now.", "Error",
+                        MessageBoxButton.OK);
+                }
+            }
+            return _schemaJS;
         }
 
         private void ClearDataJS()
@@ -202,65 +225,71 @@ namespace PPManager
         private void PopulateBoards()
         {
             //Parse into Jobject and convert data to board objects
-            JObject dataJS = LoadDataJS();
-            JToken? project = dataJS["project"];
+            JObject? dataJS = LoadDataJS();
+            JObject? schemaJS = LoadSchema();
 
-            JToken? boardsListSource = project?[6]?[16]?[1]?[92]?[6];
-
-            if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
+            string? boardsListDatapath = schemaJS?["datapathSchema"]?["menuBoardList"]?.ToString();
+            if (boardsListDatapath != null)
             {
-                for (int i = 1; i < boardsListSource.Count() - 1; i++)
+                JToken? boardsListSource = dataJS?.SelectToken(boardsListDatapath);
+                if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
                 {
-                    JToken? board = boardsListSource[i];
-
-                    JToken? gimmicks = board?[5]?[1]?[6]?[1]?[1];
-
-                    bool isClassic = false;
-                    bool isDayNight = false;
-
-                    if (gimmicks != null && gimmicks.Type == JTokenType.Array)
+                    for (int i = 1; i < boardsListSource.Count() - 1; i++)
                     {
-                        if (gimmicks?[0]?.ToObject<int>() == 10)
+                        JToken? board = boardsListSource[i];
+
+                        JToken? gimmicks = board?[5]?[1]?[6]?[1]?[1];
+
+                        bool isClassic = false;
+                        bool isDayNight = false;
+
+                        if (gimmicks != null && gimmicks.Type == JTokenType.Array)
                         {
-                            for (int j = 1; j < gimmicks?.Count(); j++)
+                            if (gimmicks?[0]?.ToObject<int>() == 10)
                             {
-                                if (gimmicks?[j]?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
+                                for (int j = 1; j < gimmicks?.Count(); j++)
+                                {
+                                    if (gimmicks?[j]?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
+                                    {
+                                        isClassic = true;
+                                    }
+                                    else if (gimmicks?[j]?[1]?.ToString() == "STG_DAYNIGHT")
+                                    {
+                                        isDayNight = true;
+                                    }
+                                }
+                            }
+                            else if (gimmicks?[0]?.ToObject<int>() == 23)
+                            {
+                                if (gimmicks?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
                                 {
                                     isClassic = true;
                                 }
-                                else if (gimmicks?[j]?[1]?.ToString() == "STG_DAYNIGHT")
+                                else if (gimmicks?[1]?.ToString() == "STG_DAYNIGHT")
                                 {
                                     isDayNight = true;
                                 }
                             }
                         }
-                        else if (gimmicks?[0]?.ToObject<int>() == 23)
-                        {
-                            if (gimmicks?[1]?.ToString() == "STG_TYPECLASSIC" && isClassic == false)
-                            {
-                                isClassic = true;
-                            }
-                            else if (gimmicks?[1]?.ToString() == "STG_DAYNIGHT")
-                            {
-                                isDayNight = true;
-                            }
-                        }
-                    }
 
-                    boards.Add(new Board
-                    {
-                        Name = board?[5]?[1]?[1]?[1]?[1]?.ToString(),
-                        RoomName = board?[5]?[1]?[2]?[1]?[1]?.ToString(),
-                        BGM = board?[5]?[1]?[3]?[1]?[1]?.ToString(),
-                        BGMPinch = board?[5]?[1]?[4]?[1]?[1]?.ToString(),
-                        BGMNight = board?[5]?[1]?[5]?[1]?[1]?.ToString(),
-                        Desc = board?[5]?[1]?[6]?[1]?[2]?[1]?.ToString(),
-                        TypeClassic = isClassic,
-                        TypeDayNight = isDayNight,
-                        ID = i
-                    });
+                        boards.Add(new Board
+                        {
+                            Name = board?[5]?[1]?[1]?[1]?[1]?.ToString(),
+                            RoomName = board?[5]?[1]?[2]?[1]?[1]?.ToString(),
+                            BGM = board?[5]?[1]?[3]?[1]?[1]?.ToString(),
+                            BGMPinch = board?[5]?[1]?[4]?[1]?[1]?.ToString(),
+                            BGMNight = board?[5]?[1]?[5]?[1]?[1]?.ToString(),
+                            Desc = board?[5]?[1]?[6]?[1]?[2]?[1]?.ToString(),
+                            TypeClassic = isClassic,
+                            TypeDayNight = isDayNight,
+                            ID = i
+                        });
+                    }
                 }
             }
+            
+
+ 
 
             DataContext = this;
             BoardListView.ItemsSource = boards;
@@ -364,9 +393,7 @@ namespace PPManager
                 JToken? map = mapsListSource?[SelectedMap.Index]?[6]?[1];
                 JToken? spaceList = map?[14];
 
-                string schemaJSPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/Schema/98_3.schema");
-                string schemaJSData = File.ReadAllText(schemaJSPath);
-                JObject schemaJS = JObject.Parse(schemaJSData);
+                JObject schemaJS = LoadSchema();
                 JToken? schema = schemaJS["objectSchema"];
                 Console.WriteLine(schema);
 
