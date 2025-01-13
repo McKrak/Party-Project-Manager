@@ -86,6 +86,7 @@
                                     <ScrollViewer Grid.Column="1" Width="200">
                                         <StackPanel Margin="10">
                                             <Label Content="Board Properties"/>
+                                            <Button Content="Extract Board..." Click="ExtractMap"/>
                                             <Label Content="Board Name"/>
                                             <TextBox Text="{Binding SelectedBoard.Name}"/>
                                             <Image x:Name="BoardImage"></Image>

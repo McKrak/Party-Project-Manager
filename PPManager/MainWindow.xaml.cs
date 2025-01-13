@@ -190,7 +190,7 @@ namespace PPManager
 
             RefreshMods();
             PopulateBoards();
-            PopulateMaps();
+            //PopulateMaps();
             PopulateMusic();
 
             ClearDataJS();
@@ -386,56 +386,79 @@ namespace PPManager
             try
             {
                 JObject dataJS = LoadDataJS();
-                JToken? project = dataJS["project"];
-                dynamic ppbJS = new JObject();
-
-                JToken? mapsListSource = project?[5];
-                JToken? map = mapsListSource?[SelectedMap.Index]?[6]?[1];
-                JToken? spaceList = map?[14];
-
                 JObject schemaJS = LoadSchema();
+                JToken? project = dataJS["project"];
                 JToken? schema = schemaJS["objectSchema"];
-                Console.WriteLine(schema);
 
-                for (int i = 0; i < spaceList?.Count(); i++)
+                string? boardsListDatapath = schemaJS?["datapathSchema"]?["menuBoardList"]?.ToString();
+                JToken? boardsListSource = dataJS?.SelectToken(boardsListDatapath);
+                JToken? board = boardsListSource?[SelectedBoard.ID];
+
+                dynamic ppbJS = new JObject();
+                ppbJS.boardInfo = new JObject();
+                ppbJS.boardInfo.name = SelectedBoard?.Name;
+                ppbJS.boardInfo.desc = SelectedBoard?.Desc;
+                ppbJS.boardInfo.BGM     = SelectedBoard?.BGM;
+                ppbJS.boardInfo.BGMPinch    = SelectedBoard?.BGMPinch;
+                ppbJS.boardInfo.BGMNight    = SelectedBoard?.BGMNight;
+
+                //Get internal map information
+                JToken? mapsListSource = project?[5];
+                for (int h = 0; h < mapsListSource?.Count(); h++)
                 {
-                    for (int j = 0; j < schema?.Count(); j++)
+                    Console.WriteLine(mapsListSource?[h]?[4]?.ToString());
+                    if (mapsListSource?[h]?[0]?.ToString() == SelectedBoard.RoomName)
                     {
-                        Console.WriteLine(spaceList?[i]?[1]);
-                        Console.WriteLine(schema?[j]?[1]);
-                        if (spaceList?[i]?[1]?.ToString() == (schema?[j]?[1]?.ToString()))
+                        JToken? map = mapsListSource?[h];
+                        JToken? spaceList = map?[6]?[1]?[14];
+                        for (int i = 0; i < spaceList?.Count(); i++)
                         {
-                            spaceList?[i]?[1]?.Replace(schema?[j]?[0]?.ToString());
-                        }
-                    }
-                }
-                ppbJS.spaceList = spaceList;
-
-                List<string> BGList = new List<string> { };
-
-                JToken? mapBGSource = mapsListSource?[SelectedMap.Index]?[6]?[0]?[14]?[0]?[1];
-                int? mapBGID = mapBGSource?.ToObject<int>();
-                if (mapBGID != null) {
-                    JToken? mapBGList = project?[3]?[mapBGID]?[7]?[0]?[7];
-                    if (mapBGList != null)
-                    {
-                        for (int i = 0; i <  mapBGList?.Count(); i++)
-                        {
-                            string imagePath = Path.Combine(Settings.packagePath, mapBGList?[i]?[0]?.ToObject<string>());
-                            Console.WriteLine(imagePath);
-                            if (File.Exists(imagePath))
+                            for (int j = 0; j < schema?.Count(); j++)
                             {
-                                Byte[] bytes = File.ReadAllBytes(imagePath);
-                                string imB64 = Convert.ToBase64String(bytes);
-                                Console.WriteLine(imB64);
-                                BGList.Add(imB64);
+                                Console.WriteLine(spaceList?[i]?[1]);
+                                Console.WriteLine(schema?[j]?[1]);
+                                if (spaceList?[i]?[1]?.ToString() == (schema?[j]?[1]?.ToString()))
+                                {
+                                    spaceList?[i]?[1]?.Replace(schema?[j]?[0]?.ToString());
+                                }
                             }
                         }
+                        ppbJS.spaceList = spaceList;
+
+                        ppbJS.spriteList = new JObject();
+                        ppbJS.spriteList.bg = new JArray();
+
+                        JToken? mapBGSource = map?[6]?[0]?[14]?[0]?[1];
+                        int? mapBGID = mapBGSource?.ToObject<int>();
+                        if (mapBGID != null)
+                        {
+                            JToken? mapBGList = project?[3]?[mapBGID]?[7]?[0]?[7];
+                            if (mapBGList != null)
+                            {
+                                for (int i = 0; i < mapBGList?.Count(); i++)
+                                {
+                                    string imagePath = Path.Combine(Settings.packagePath, mapBGList?[i]?[0]?.ToObject<string>());
+                                    Console.WriteLine(imagePath);
+                                    if (File.Exists(imagePath))
+                                    {
+                                        Byte[] bytes = File.ReadAllBytes(imagePath);
+                                        string imB64 = Convert.ToBase64String(bytes);
+                                        Console.WriteLine(imB64);
+                                        ppbJS.spriteList.bg.Add(new JObject());
+                                        ppbJS.spriteList.bg[i].buff = imB64;
+                                        ppbJS.spriteList.bg[i].width = map?[6]?[0]?[14]?[0]?[0]?[3];
+                                        ppbJS.spriteList.bg[i].height = map?[6]?[0]?[14]?[0]?[0]?[4];
+                                    }
+                                    else ppbJS.spriteList.bg.Add(-1);
+                                }
+                            }
+                        }
+                        //ppbJS.BGList = JToken.FromObject(BGList);
+
+                        break;
                     }
                 }
-                ppbJS.BGList = JToken.FromObject(BGList);
                 SaveToPPB(ppbJS);
-
 
             }
             catch (Exception ex)
@@ -451,7 +474,7 @@ namespace PPManager
                 fileDialog.InitialDirectory = Settings.partyFolder;
                 fileDialog.Filter = ".Party Project Board (*.ppb)|*.ppb";
                 fileDialog.FilterIndex = 0;
-                fileDialog.FileName = SelectedMap?.Name;
+                fileDialog.FileName = SelectedBoard?.Name;
                 fileDialog.RestoreDirectory = true;
 
                 if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
