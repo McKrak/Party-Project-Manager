@@ -76,7 +76,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ListView Name="BoardListView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" SelectionChanged="BoardListView_SelectionChanged" >
+                                    <ListView Name="BoardListView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" SelectionChanged="BoardListView_SelectionChanged" d:ItemsSource="{d:SampleData ItemCount=5}" >
                                         <ListView.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Name}" />
@@ -90,7 +90,7 @@
                                             <Label Content="Board Name"/>
                                             <TextBox Text="{Binding SelectedBoard.Name}"/>
                                             <Image x:Name="BoardImage"></Image>
-                                            <Button Content="Replace Image..." Click="ReplaceBoardImage"/>
+                                            <Button Content="Replace Image..."/>
                                             <TextBlock Text="{Binding SelectedBoard.RoomName}"/>
                                             <TextBlock Text="{Binding SelectedBoard.ID}"/>
                                             <Label Content="Map File"/>

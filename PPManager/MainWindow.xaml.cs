@@ -12,6 +12,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -22,6 +23,7 @@ using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace PPManager
 {
@@ -80,6 +82,8 @@ namespace PPManager
             GC.Collect();
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             GC.Collect();
+
+            Console.WriteLine("DataJS should be cleared nwo");
         }
         public class Mod : INotifyPropertyChanged
         {
@@ -191,7 +195,7 @@ namespace PPManager
             RefreshMods();
             PopulateBoards();
             //PopulateMaps();
-            PopulateMusic();
+            //PopulateMusic();
 
             ClearDataJS();
         }
@@ -224,27 +228,37 @@ namespace PPManager
 
         private void PopulateBoards()
         {
+            boards = new List<Board>();
+
             //Parse into Jobject and convert data to board objects
             JObject? dataJS = LoadDataJS();
             JObject? schemaJS = LoadSchema();
 
-            string? boardsListDatapath = schemaJS?["datapathSchema"]?["menuBoardList"]?.ToString();
+            string? boardsListDatapath = schemaJS?["datapathSchema"]?["boardList"]?.ToString();
             if (boardsListDatapath != null)
             {
                 JToken? boardsListSource = dataJS?.SelectToken(boardsListDatapath);
                 if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
                 {
-                    for (int i = 1; i < boardsListSource.Count() - 1; i++)
+                    for (int i = 1; i < boardsListSource.Count(); i++)
                     {
                         JToken? board = boardsListSource[i];
-
-                        JToken? gimmicks = board?[5]?[1]?[6]?[1]?[1];
+                        JToken? gimmicks = null;
+                        try
+                        {
+                            gimmicks = board?[5]?[1]?[6]?[1]?[1];
+                        } catch
+                        {
+                            Console.WriteLine("Board ID " + i + " has no gimmick entry. (unused?)");
+                        }
 
                         bool isClassic = false;
                         bool isDayNight = false;
+                        string desc = "No entry.";
 
                         if (gimmicks != null && gimmicks.Type == JTokenType.Array)
                         {
+                            desc = board?[5]?[1]?[6]?[1]?[2]?[1]?.ToString();
                             if (gimmicks?[0]?.ToObject<int>() == 10)
                             {
                                 for (int j = 1; j < gimmicks?.Count(); j++)
@@ -279,7 +293,7 @@ namespace PPManager
                             BGM = board?[5]?[1]?[3]?[1]?[1]?.ToString(),
                             BGMPinch = board?[5]?[1]?[4]?[1]?[1]?.ToString(),
                             BGMNight = board?[5]?[1]?[5]?[1]?[1]?.ToString(),
-                            Desc = board?[5]?[1]?[6]?[1]?[2]?[1]?.ToString(),
+                            Desc = desc,
                             TypeClassic = isClassic,
                             TypeDayNight = isDayNight,
                             ID = i
@@ -287,9 +301,6 @@ namespace PPManager
                     }
                 }
             }
-            
-
- 
 
             DataContext = this;
             BoardListView.ItemsSource = boards;
@@ -301,53 +312,53 @@ namespace PPManager
 
             //Parse into Jobject
             JObject dataJS = LoadDataJS();
-            JToken? project = dataJS["project"];
+            //JToken? project = dataJS["project"];
 
-            //First, we add the board entries for each board
-            JToken? boardsListSource = project?[6]?[16]?[1]?[92]?[6];
+            ////First, we add the board entries for each board
+            //JToken? boardsListSource = project?[6]?[16]?[1]?[92]?[6];
 
-            if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
-            {
-                for (int i = 1; i < boardsListSource.Count() - 1; i++)
-                {
-                    JToken? board = boardsListSource[i];
-                    Board? source = boards?[i - 1];
-
-                    board?[5]?[1]?[1]?[1]?[1]?.Replace(source?.Name?.ToString());
-                    board?[5]?[1]?[2]?[1]?[1]?.Replace(source?.RoomName?.ToString());
-                    board?[5]?[1]?[3]?[1]?[1]?.Replace(source?.BGM?.ToString());
-                    board?[5]?[1]?[4]?[1]?[1]?.Replace(source?.BGMPinch?.ToString());
-                    board?[5]?[1]?[5]?[1]?[1]?.Replace(source?.BGMNight?.ToString());
-                    board?[5]?[1]?[6]?[1]?[2]?[1]?.Replace(source?.Desc?.ToString());
-                    if (boards?[i - 1].TypeDayNight == true)
-                    {
-                        JArray gimmicks = new JArray(10, new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC"), new JArray(23, "STG_DAYNIGHT"));
-                        board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
-                    }
-                    else
-                    {
-                        JArray gimmicks = new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC");
-                        board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
-                    }
-                }
-            }
-
-            //Then, we configure the board list in the party menu so there's enough for each board
-            JToken? boardSelectTextures = project?[3]?[493]?[7]?[0]?[7];
-            JToken? boardSelectButtons = project?[5]?[222]?[6]?[1]?[14];
-            int boardButtonCount = 0;
-
-            //for (int i = 0; i < boardSelectButtons?.Count(); i++)
+            //if (boardsListSource != null && boardsListSource.Type == JTokenType.Array)
             //{
-            //    if (boardSelectButtons?[i]?[1]?.ToObject<int>() == 493)
+            //    for (int i = 1; i < boardsListSource.Count() - 1; i++)
             //    {
-            //        boardButtonCount++;
-            //        if (boardButtonCount < boards.Count())
-            //        {
+            //        JToken? board = boardsListSource[i];
+            //        Board? source = boards?[i - 1];
 
+            //        board?[5]?[1]?[1]?[1]?[1]?.Replace(source?.Name?.ToString());
+            //        board?[5]?[1]?[2]?[1]?[1]?.Replace(source?.RoomName?.ToString());
+            //        board?[5]?[1]?[3]?[1]?[1]?.Replace(source?.BGM?.ToString());
+            //        board?[5]?[1]?[4]?[1]?[1]?.Replace(source?.BGMPinch?.ToString());
+            //        board?[5]?[1]?[5]?[1]?[1]?.Replace(source?.BGMNight?.ToString());
+            //        board?[5]?[1]?[6]?[1]?[2]?[1]?.Replace(source?.Desc?.ToString());
+            //        if (boards?[i - 1].TypeDayNight == true)
+            //        {
+            //            JArray gimmicks = new JArray(10, new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC"), new JArray(23, "STG_DAYNIGHT"));
+            //            board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
+            //        }
+            //        else
+            //        {
+            //            JArray gimmicks = new JArray(23, (source?.TypeClassic == true) ? "STG_TYPECLASSIC" : "STG_TYPESPEC");
+            //            board?[5]?[1]?[6]?[1]?[1]?.Replace(gimmicks);
             //        }
             //    }
             //}
+
+            ////Then, we configure the board list in the party menu so there's enough for each board
+            //JToken? boardSelectTextures = project?[3]?[493]?[7]?[0]?[7];
+            //JToken? boardSelectButtons = project?[5]?[222]?[6]?[1]?[14];
+            //int boardButtonCount = 0;
+
+            ////for (int i = 0; i < boardSelectButtons?.Count(); i++)
+            ////{
+            ////    if (boardSelectButtons?[i]?[1]?.ToObject<int>() == 493)
+            ////    {
+            ////        boardButtonCount++;
+            ////        if (boardButtonCount < boards.Count())
+            ////        {
+
+            ////        }
+            ////    }
+            ////}
 
             File.WriteAllText(dataJSPath, dataJS.ToString());
 
@@ -355,30 +366,6 @@ namespace PPManager
             "Mods patched successfully.",
             "Success",
             MessageBoxButton.OK);
-        }
-
-        private void PopulateMaps()
-        {
-            JObject dataJS = LoadDataJS();
-
-            JToken? project = dataJS["project"];
-
-            JToken? mapsListSource = project?[5];
-            maps.Clear();
-
-            for (int i = 0; i < mapsListSource?.Count(); i++)
-            {
-                if (mapsListSource?[i]?[4]?.ToString() == "cd_board")
-                {
-                    maps.Add(new Map
-                    {
-                        Name = mapsListSource?[i]?[0]?.ToString(),
-                        Index = i
-                    });
-                }
-            }
-            DataContext = this;
-            MapListView.ItemsSource = maps;
         }
 
         private void ExtractMap(object sender, RoutedEventArgs e)
@@ -390,7 +377,7 @@ namespace PPManager
                 JToken? project = dataJS["project"];
                 JToken? schema = schemaJS["objectSchema"];
 
-                string? boardsListDatapath = schemaJS?["datapathSchema"]?["menuBoardList"]?.ToString();
+                string? boardsListDatapath = schemaJS?["datapathSchema"]?["boardList"]?.ToString();
                 JToken? boardsListSource = dataJS?.SelectToken(boardsListDatapath);
                 JToken? board = boardsListSource?[SelectedBoard.ID];
 
@@ -453,8 +440,21 @@ namespace PPManager
                                 }
                             }
                         }
-                        //ppbJS.BGList = JToken.FromObject(BGList);
+                        BitmapImage thumb = new BitmapImage(new Uri(Settings.packagePath + "/" + "boardthumb-default-" + SelectedBoard.ID.ToString("D3") + ".jpg"));
 
+                        string thumbB64 = Base64FromBitmap(thumb, "jpeg");
+                        ppbJS.spriteList.thumb = new JObject();
+                        ppbJS.spriteList.thumb["buff"] = thumbB64;
+                        ppbJS.spriteList.thumb["width"] = thumb.Width;
+                        ppbJS.spriteList.thumb["height"] = thumb.Height;
+
+                        BitmapImage preview = new BitmapImage(new Uri(Settings.packagePath + "/" + "boardpreview-default-" + SelectedBoard.ID.ToString("D3") + ".jpg"));
+
+                        string previewB64 = Base64FromBitmap(preview, "jpeg");
+                        ppbJS.spriteList.preview = new JObject();
+                        ppbJS.spriteList.preview["buff"] = previewB64;
+                        ppbJS.spriteList.preview["width"] = preview.Width;
+                        ppbJS.spriteList.preview["height"] = preview.Height;
                         break;
                     }
                 }
@@ -575,9 +575,37 @@ namespace PPManager
             }
         }
 
-        private void ReplaceBoardImage(object sender, RoutedEventArgs e)
+        static BitmapImage BitmapFromBase64(string inputBase64)
         {
+            byte[] imageBytes = Convert.FromBase64String(inputBase64);
+            using (MemoryStream ms = new MemoryStream(imageBytes))
+            {
+                BitmapImage bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = ms;
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
 
+                return bmp;
+            }
+        }
+
+        static string Base64FromBitmap(BitmapImage inputBitmap, string format)
+        {
+            BitmapEncoder encoder = format switch
+            {
+                "png" => new PngBitmapEncoder(),
+                "jpeg" => new JpegBitmapEncoder(),
+                _ => throw new ArgumentException("Image format is not supported"),
+            };
+
+            encoder.Frames.Add(BitmapFrame.Create(inputBitmap));
+
+            using (var memoryStream = new MemoryStream())
+            {
+                encoder.Save(memoryStream);
+                return Convert.ToBase64String(memoryStream.ToArray());
+            }
         }
 
         private void LoadExternalBoardData(object sender, RoutedEventArgs e)
@@ -585,17 +613,122 @@ namespace PPManager
             using OpenFileDialog fileDialog = new OpenFileDialog();
             {
                 fileDialog.InitialDirectory = Settings.partyFolder;
-                fileDialog.Filter = ".json files (*.json)|*.json";
+                fileDialog.Filter = "Party Project Board Files (*.ppb)|*.ppb";
                 fileDialog.FilterIndex = 0;
                 fileDialog.Multiselect = true;
                 fileDialog.RestoreDirectory = true;
 
                 if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
+                    JObject dataJS = LoadDataJS();
+                    JObject schemaJS = LoadSchema();
+                    JToken? schema = schemaJS["objectSchema"];
+
                     for (int i = 0; i < fileDialog.FileNames.Length; i++)
                     {
                         Console.WriteLine(fileDialog.FileNames[i]);
+                        string pjbd = File.ReadAllText(fileDialog.FileNames[i]);
+                        JObject board = JObject.Parse(pjbd);
+                        JToken? spaceList = board["spaceList"];
+                        JToken? boardInfo = board["boardInfo"];
+
+                        //Replace object names with their respective IDs
+                        for (int k = 0; k < spaceList?.Count(); k++)
+                        {
+                            for (int j = 0; j < schema?.Count(); j++)
+                            {
+                                if (spaceList?[k]?[1]?.ToString() == (schema?[j]?[0]?.ToString()))
+                                {
+                                    spaceList?[k]?[1]?.Replace(schema?[j]?[1]?.ToObject<int>());
+                                }
+                            }
+                        }
+
+                        //Add BG Texture
+                        string? textureListDatapath = schemaJS?["datapathSchema"]?["textureList"]?.ToString();
+                        JToken? textureListSource = dataJS?.SelectToken(textureListDatapath);
+
+                        List<int> missingTextureList = new List<int>();
+                        for (int j = 0; j < textureListSource?.Count(); j++)
+                        {
+                            JToken? textureEntry = textureListSource[j]?[0];
+                            if (textureEntry?.ToString() != "DUMMYTEX")
+                            {
+                                missingTextureList.Add(j);
+                            }
+                        }
+
+                        JToken? spriteList = board["spriteList"];
+
+                        string filename = "bg" + Path.GetFileNameWithoutExtension(fileDialog.FileNames[i]) + "-default-000.jpg";
+                        BitmapImage bgImage = BitmapFromBase64(spriteList["bg"][0]["buff"].ToString());
+                        BitmapEncoder encoder = new JpegBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(bgImage));
+
+                        using (var fs = new System.IO.FileStream(Settings.packagePath + "/" + filename, System.IO.FileMode.Create))
+                        {
+                            encoder.Save(fs);
+                        }
+
+
+                        JArray bgData = (JArray)schemaJS["templateSchema"]["texture"].DeepClone();
+                        bgData[7][0][7][0][0] = filename;
+                        if (textureListSource is JArray textureListArray)
+                        {
+                            textureListArray.Add(bgData);
+                        }
+
+
+
+                        //Add room
+                        JArray room = (JArray)schemaJS["templateSchema"]["boardRoom"].DeepClone();
+                        room[0] = boardInfo["name"];
+                        room[6][0][14][0][1] = 331;
+                        room[6][1][14] = spaceList;
+
+                        string? roomListDatapath = schemaJS?["datapathSchema"]?["roomList"]?.ToString();
+                        JToken? roomListSource = dataJS?.SelectToken(roomListDatapath);
+                        if (roomListSource is JArray roomListArray)
+                        {
+                            roomListArray.Add(room);
+                        }
+
+                        //Add board to board data
+                        JArray boardData = (JArray)schemaJS["templateSchema"]["addBoardData"].DeepClone();
+                        boardData[5][1][1][1][1] = boardInfo["name"];
+                        boardData[5][1][2][1][1] = boardInfo["name"];
+                        boardData[5][1][3][1][1] = boardInfo["BGM"];
+                        boardData[5][1][4][1][1] = boardInfo["BGMPinch"];
+                        boardData[5][1][5][1][1] = boardInfo["BGMNight"];
+
+                        string? boardListDatapath = schemaJS?["datapathSchema"]?["boardList"]?.ToString();
+                        JToken? boardListSource = dataJS?.SelectToken(boardListDatapath);
+                        int boardID = 0;
+                        if (boardListSource is JArray boardListArray)
+                        {
+                            boardListArray.Add(boardData);
+                            boardID = boardListArray.Count;
+                        }
+
+                        //Add board data to board select
+                        JArray menuBoardEntry = (JArray)schemaJS["templateSchema"]["menuBoardEntry"].DeepClone();
+                        JToken? schemaMenuBoardX = schemaJS["menuBoardX"];
+                        int menuBoardX = boardID % 3;
+                        menuBoardX *= schemaMenuBoardX[menuBoardX].ToObject<int>();
+                        menuBoardEntry[0][0] = menuBoardX;
+                        menuBoardEntry[0][1] = schemaJS["menuBoardYinc"].ToObject<int>() * ((boardID / 3) + 1);
+                        menuBoardEntry[5][2] = boardID;
+
+                        string? menuBoardEntriesDatapath = schemaJS?["datapathSchema"]?["menuBoardEntries"]?.ToString();
+                        JToken? menuBoardEntriesSource = dataJS?.SelectToken(menuBoardEntriesDatapath);
+                        if (menuBoardEntriesSource is JArray menuBoardEntriesArray)
+                        {
+                            menuBoardEntriesArray.Add(menuBoardEntry);
+                        }
+
+                        
                     }
+                    PopulateBoards();
 
                 }
 
