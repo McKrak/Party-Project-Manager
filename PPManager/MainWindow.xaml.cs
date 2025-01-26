@@ -56,13 +56,20 @@ namespace PPManager
         {
             if ((_schemaJS == null) && (_dataJS != null)) {
                 JToken? versionEntry = _dataJS?["project"]?[16];
+                Console.WriteLine($"Version detected: {versionEntry}");
                 if (versionEntry != null)
                 {
-                    string version = versionEntry.ToString().Split('-')[0].Replace('.','_');
+                    string version = versionEntry.ToString().Replace('.', '_');
                     string schemaJSPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"Resources/Schema/{version}.schema");
-                    string schemaJSData = File.ReadAllText(schemaJSPath);
-                    _schemaJS = JObject.Parse(schemaJSData);
-                } 
+                    if (File.Exists(schemaJSPath))
+                    {
+                        string schemaJSData = File.ReadAllText(schemaJSPath);
+                        _schemaJS = JObject.Parse(schemaJSData);
+                    } else
+                    {
+                        System.Windows.MessageBox.Show($"Party Project version \"{versionEntry}\" is currently unsupported.");
+                    }
+                }
                 else
                 {
                     System.Windows.MessageBox.Show("This Party Project installation " +
@@ -188,6 +195,7 @@ namespace PPManager
         public MainWindow()
         {
             InitializeComponent();
+            LoadSchema();
             LoadDataJS();
 
             DataContext = this;
