@@ -20,6 +20,9 @@
     <None Update="Resources\Schema\v98_3.schema">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Resources\Schema\v98_4-250124.schema">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\Schema\v98_4.schema">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -5445,6 +5445,66 @@
                 8000,
                 0
             ]
+        ],
+        "boardspace": [
+            [
+              "x",
+              "y",
+              0,
+              "xscale",
+              "yscale",
+              0,
+              0,
+              "angle",
+              "xorig",
+              "yorig",
+              0,
+              0,
+              []
+            ],
+            "boardspace",
+            8888,
+            [
+              [
+                "index"
+              ],
+              [
+                0
+              ],
+              [
+                "path[0]"
+              ],
+              [
+                "path[1]"
+              ],
+              [
+                "path[2]"
+              ],
+              [
+                "path[3]"
+              ],
+              [
+                ""
+              ],
+              [
+                "space_event"
+              ],
+              [
+                "event_param"
+              ],
+              [
+                0
+              ]
+            ],
+            [
+              []
+            ],
+            [
+              0,
+              "Default",
+              "space_type",
+              0
+            ]
         ]
     },
     "objectSchema": [
