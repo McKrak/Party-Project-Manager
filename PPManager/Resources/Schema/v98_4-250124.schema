@@ -1,7 +1,13 @@
 {
-    "menuBoardX": [40, 168, 296],
+    "menuBoardX": [
+        40,
+        168,
+        296
+    ],
     "menuBoardYinc": 72,
-    "unusedBoards": [32],
+    "unusedBoards": [
+        32
+    ],
     "datapathSchema": {
         "roomList": "project[5]",
         "boardList": "project[6][14][1][85][6]",
@@ -5279,9 +5285,9 @@
                     251168878277914,
                     true,
                     [
-                      0,
-                      0,
-                      0
+                        0,
+                        0,
+                        0
                     ],
                     true,
                     0,
@@ -5293,50 +5299,50 @@
                     0,
                     0,
                     [
-                      [
                         [
-                          0,
-                          0,
-                          0,
-                          854,
-                          480,
-                          0,
-                          0,
-                          1,
-                          0,
-                          1,
-                          0,
-                          0,
-                          []
-                        ],
-                        833,
-                        204,
-                        [],
-                        [
-                          [
-                            0,
-                            8,
-                            0,
-                            "960",
-                            0,
-                            0.2,
-                            1
-                          ],
-                          [
-                            0,
-                            1,
-                            0,
-                            1,
-                            0
-                          ]
-                        ],
-                        [
-                          0,
-                          "Default",
-                          0,
-                          0
+                            [
+                                0,
+                                0,
+                                0,
+                                854,
+                                480,
+                                0,
+                                0,
+                                1,
+                                0,
+                                1,
+                                0,
+                                0,
+                                []
+                            ],
+                            833,
+                            204,
+                            [],
+                            [
+                                [
+                                    0,
+                                    8,
+                                    0,
+                                    "960",
+                                    0,
+                                    0.2,
+                                    1
+                                ],
+                                [
+                                    0,
+                                    1,
+                                    0,
+                                    1,
+                                    0
+                                ]
+                            ],
+                            [
+                                0,
+                                "Default",
+                                0,
+                                0
+                            ]
                         ]
-                      ]
                     ],
                     []
                 ]
@@ -5418,7 +5424,7 @@
                     ]
                 ]
             ]
-        ],                            
+        ],
         "menuBoardEntry": [
             [
                 168,
@@ -5445,67 +5451,108 @@
                 8000,
                 0
             ]
-        ],
+        ]
+    },
+    "ppbTemplateSchema": {
         "boardspace": [
             [
-              "x",
-              "y",
-              0,
-              "xscale",
-              "yscale",
-              0,
-              0,
-              "angle",
-              "xorig",
-              "yorig",
-              0,
-              0,
-              []
+                "x",
+                "y",
+                0,
+                "xscale",
+                "yscale",
+                0,
+                0,
+                "angle",
+                "xorig",
+                "yorig",
+                0,
+                0,
+                []
             ],
             "boardspace",
             8888,
             [
-              [
-                "index"
-              ],
-              [
-                0
-              ],
-              [
-                "path[0]"
-              ],
-              [
-                "path[1]"
-              ],
-              [
-                "path[2]"
-              ],
-              [
-                "path[3]"
-              ],
-              [
-                ""
-              ],
-              [
-                "space_event"
-              ],
-              [
-                "event_param"
-              ],
-              [
-                0
-              ]
+                [
+                    "index"
+                ],
+                [
+                    0
+                ],
+                [
+                    "path[0]"
+                ],
+                [
+                    "path[1]"
+                ],
+                [
+                    "path[2]"
+                ],
+                [
+                    "path[3]"
+                ],
+                [
+                    ""
+                ],
+                [
+                    "space_event"
+                ],
+                [
+                    "event_param"
+                ],
+                [
+                    0
+                ]
             ],
             [
-              []
+                []
             ],
             [
-              0,
-              "Default",
-              "space_type",
-              0
+                0,
+                "Default",
+                "space_type",
+                0
+            ]
+        ],
+        "boardgroupmove": [
+            [
+                "x",
+                "y",
+                0,
+                "xscale",
+                "yscale",
+                0,
+                0,
+                "angle",
+                "xorig",
+                "yorig",
+                0,
+                0,
+                []
+            ],
+            "boardgroupmove",
+            8888,
+            [
+                [
+                    "cprop.target_space"
+                ],
+                [
+                    ""
+                ]
+            ],
+            [],
+            [
+                1,
+                "Default",
+                0,
+                0
             ]
         ]
+    },
+    "rpkTemplateSchema": {
+        "v1": {
+            
+        }
     },
     "objectSchema": [
         [
