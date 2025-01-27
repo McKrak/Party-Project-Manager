@@ -5551,7 +5551,26 @@
     },
     "rpkTemplateSchema": {
         "v1": {
-            
+            "__RPK_Constructor__": "pjspace",
+            "__RPK_Schema_Version__": 1.0,
+            "x": 0.0,
+            "y": 0.0,
+            "angle": 0.0,
+            "xscale": 64.0,
+            "yscale": 64.0,
+            "xorig": 0.5,
+            "yorig": 0.5,
+            "name": "0.pspc",
+            "space_type": 0,
+            "index": 0.0,
+            "dest": [
+                -1.0,
+                -1.0,
+                -1.0,
+                -1.0
+            ],
+            "space_event": "",
+            "event_param": 0.0
         }
     },
     "objectSchema": [
