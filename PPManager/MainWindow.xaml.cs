@@ -376,6 +376,53 @@ namespace PPManager
             MessageBoxButton.OK);
         }
 
+        private string PObjectIDToName(int id)
+        {
+            JObject schemaJS = LoadSchema();
+            if (schemaJS["objectSchema"] is JObject objects)
+            {
+                var objectNames = objects.Properties().Select(p => p.Name).ToArray();
+                for (int i = 0; i < objectNames.Length; i++)
+                {
+                    if (objects[objectNames[i]].ToObject<int>() == id)
+                    {
+                        return objectNames[i];
+                    }
+                }
+                return id.ToString();
+            }
+            else return "null";
+        }
+
+        private int PObjectNameToID(string name)
+        {
+            JObject schemaJS = LoadSchema();
+            if (schemaJS["objectSchema"][name] != null)
+            {
+                return schemaJS["objectSchema"][name].ToObject<int>();
+            } else
+            {
+                return -1;
+            }
+        }
+
+        static void SetCpropValue(JObject jObject, string path, JToken value, string type)
+        {
+            string[] split_path = path.Split('.');
+            for (int i = 0; i < split_path.Length; i++)
+            {
+                if (jObject[split_path[i]] == null)
+                {
+                    jObject[split_path[i]] = new JObject();
+                }
+
+                jObject = (JObject)jObject[split_path[i]];
+            }
+            jObject["value"] = value;
+            jObject["type"] = type;
+
+        }
+
         private void ExtractMap(object sender, RoutedEventArgs e)
         {
             try
@@ -387,6 +434,8 @@ namespace PPManager
 
                 string? boardsListDatapath = schemaJS?["datapathSchema"]?["boardList"]?.ToString();
                 JToken? boardsListSource = dataJS?.SelectToken(boardsListDatapath);
+                string? instTypeDatapath = schemaJS?["datapathSchema"]?["instType"]?.ToString();
+                string? instIndexDatapath = schemaJS?["datapathSchema"]?["instIndex"]?.ToString();
                 JToken? board = boardsListSource?[SelectedBoard.ID];
 
                 dynamic ppbJS = new JObject();
@@ -401,24 +450,128 @@ namespace PPManager
                 JToken? mapsListSource = project?[5];
                 for (int h = 0; h < mapsListSource?.Count(); h++)
                 {
-                    Console.WriteLine(mapsListSource?[h]?[4]?.ToString());
+                    //Console.WriteLine(mapsListSource?[h]?[4]?.ToString());
                     if (mapsListSource?[h]?[0]?.ToString() == SelectedBoard.RoomName)
                     {
                         JToken? map = mapsListSource?[h];
                         JToken? spaceList = map?[6]?[1]?[14];
+                        JArray instList = new JArray();
                         for (int i = 0; i < spaceList?.Count(); i++)
                         {
-                            for (int j = 0; j < schema?.Count(); j++)
+                            int instTypeSource = spaceList[i].SelectToken(instTypeDatapath).ToObject<int>();
+                            string instType = PObjectIDToName(instTypeSource);
+                            if (instType == "boardspace")
                             {
-                                Console.WriteLine(spaceList?[i]?[1]);
-                                Console.WriteLine(schema?[j]?[1]);
-                                if (spaceList?[i]?[1]?.ToString() == (schema?[j]?[1]?.ToString()))
+                                JObject spaceData = (JObject)schemaJS["rpkTemplateSchema"]["pjspace"]["v1"].DeepClone();
+                                if (schemaJS["ppbTemplateSchema"]["boardspace"]["vars"] is JObject vars)
                                 {
-                                    spaceList?[i]?[1]?.Replace(schema?[j]?[0]?.ToString());
+                                    var names = vars.Properties().Select(p => p.Name).ToArray();
+                                    for (int k = 0; k < names.Length; k++)
+                                    {
+                                        try
+                                        {
+                                            string name = names[k];
+                                            string var = vars[names[k]].ToString();
+                                            JToken? value = spaceData.SelectToken(var);
+                                            JToken? replaceValue = spaceList[i].SelectToken(name);
+                                            if ((replaceValue != null) && (value != null))
+                                            {
+                                                value.Replace(replaceValue);
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine($"Instance #{i}: Value \"{var}\" does not exist.");
+                                            }
+                                        }
+                                        catch (System.Exception ex)
+                                        {
+                                            Console.WriteLine(ex);
+                                        }
+
+                                    }
+                                    JToken? instIndexSource = spaceList[i]?.SelectToken(instIndexDatapath);
+                                    spaceData["name"] = instIndexSource.ToString();
+                                    instList.Add(spaceData);
+                                }
+                            } else
+                            {
+                                JObject spaceData = (JObject)schemaJS["rpkTemplateSchema"]["pjobject"]["v1"].DeepClone();
+                                if (schemaJS["ppbTemplateSchema"]?[instType]?["vars"] != null)
+                                {
+                                    if (schemaJS["ppbTemplateSchema"][instType]["vars"] is JObject vars)
+                                    {
+                                        var names = vars.Properties().Select(p => p.Name).ToArray();
+                                        for (int k = 0; k < names.Length; k++)
+                                        {
+                                            try
+                                            {
+                                                string name = names[k];
+                                                string var = vars[names[k]].ToString();
+                                                JToken? value = spaceData.SelectToken(var);
+                                                JToken? replaceValue = spaceList[i].SelectToken(name);
+                                                if ((replaceValue != null) && (value != null))
+                                                {
+                                                    value.Replace(replaceValue);
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine($"Instance #{i}: Value \"{var}\" does not exist.");
+                                                }
+                                            }
+                                            catch (System.Exception ex)
+                                            {
+                                                Console.WriteLine(ex);
+                                            }
+
+                                        }
+                                        JToken? instIndexSource = spaceList[i]?.SelectToken(instIndexDatapath);
+                                        spaceData["name"] = instIndexSource.ToString();
+                                        spaceData["object_type"] = instType;
+
+                                        if (schemaJS["ppbTemplateSchema"]?[instType]?["cprop"] != null)
+                                        {
+                                            if (schemaJS["ppbTemplateSchema"]?[instType]?["cprop"] is JObject cprop)
+                                            {
+                                                var cnames = cprop.Properties().Select(p =>p.Name).ToArray();
+                                                for (int k = 0; k < cnames.Length; k++)
+                                                {
+                                                    try
+                                                    {
+                                                        string name = cnames[k];
+                                                        string var = cprop[name][0].ToString();
+                                                        //JToken? value = spaceData.SelectToken(var);
+                                                        JToken? replaceValue = spaceList[i].SelectToken(name);
+                                                        SetCpropValue(spaceData, var, replaceValue, cprop[name][1].ToString());
+                                                    }
+                                                    catch (System.Exception ex)
+                                                    {
+                                                        Console.WriteLine(ex);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        instList.Add(spaceData);
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"Object type {instType} does not exist!");
                                 }
                             }
                         }
-                        ppbJS.spaceList = spaceList;
+                        //for (int i = 0; i < spaceList?.Count(); i++)
+                        //{
+                        //    for (int j = 0; j < schema?.Count(); j++)
+                        //    {
+                        //        Console.WriteLine(spaceList?[i]?[1]);
+                        //        Console.WriteLine(schema?[j]?[1]);
+                        //        if (spaceList?[i]?[1]?.ToString() == (schema?[j]?[1]?.ToString()))
+                        //        {
+                        //            spaceList?[i]?[1]?.Replace(schema?[j]?[0]?.ToString());
+                        //        }
+                        //    }
+                        //}
+                        ppbJS.spaceList = instList;
 
                         ppbJS.spriteList = new JObject();
                         ppbJS.spriteList.bg = new JArray();
@@ -438,7 +591,7 @@ namespace PPManager
                                     {
                                         Byte[] bytes = File.ReadAllBytes(imagePath);
                                         string imB64 = Convert.ToBase64String(bytes);
-                                        Console.WriteLine(imB64);
+                                        //Console.WriteLine(imB64);
                                         ppbJS.spriteList.bg.Add(new JObject());
                                         ppbJS.spriteList.bg[i].buff = imB64;
                                         ppbJS.spriteList.bg[i].width = map?[6]?[0]?[14]?[0]?[0]?[3];
@@ -616,6 +769,43 @@ namespace PPManager
             }
         }
 
+        private int? InjectTexture(string base64, string filename)
+        {
+            JObject dataJS = LoadDataJS();
+            JObject schemaJS = LoadSchema();
+
+            string? textureListDatapath = schemaJS?["datapathSchema"]?["textureList"]?.ToString();
+            JToken? textureListSource = dataJS?.SelectToken(textureListDatapath);
+
+            List<int> missingTextureList = new List<int>();
+            for (int j = 0; j < textureListSource?.Count(); j++)
+            {
+                JToken? textureEntry = textureListSource[j]?[0];
+                if (textureEntry?.ToString() != "DUMMYTEX")
+                {
+                    missingTextureList.Add(j);
+                }
+            }
+            BitmapImage bgImage = BitmapFromBase64(base64);
+            BitmapEncoder encoder = new JpegBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bgImage));
+
+            using (var fs = new System.IO.FileStream(Settings.packagePath + "/" + filename, System.IO.FileMode.Create))
+            {
+                encoder.Save(fs);
+            }
+
+
+            JArray bgData = (JArray)schemaJS["templateSchema"]["texture"].DeepClone();
+            bgData[7][0][7][0][0] = filename;
+            if (textureListSource is JArray textureListArray)
+            {
+                textureListArray.Add(bgData);
+                return textureListArray.Count() - 1;
+            }
+            return null;
+        }
+
         private void LoadExternalBoardData(object sender, RoutedEventArgs e)
         {
             using OpenFileDialog fileDialog = new OpenFileDialog();
@@ -631,59 +821,134 @@ namespace PPManager
                     JObject dataJS = LoadDataJS();
                     JObject schemaJS = LoadSchema();
                     JToken? schema = schemaJS["objectSchema"];
+                    string? instTypeDatapath = schemaJS?["datapathSchema"]?["instType"]?.ToString();
+                    string? instIndexDatapath = schemaJS?["datapathSchema"]?["instIndex"]?.ToString();
 
                     for (int i = 0; i < fileDialog.FileNames.Length; i++)
                     {
                         Console.WriteLine(fileDialog.FileNames[i]);
+
+                        //Calculate Board ID
+                        string? boardListDatapath = schemaJS?["datapathSchema"]?["boardList"]?.ToString();
+                        JToken? boardListSource = dataJS?.SelectToken(boardListDatapath);
+                        int boardID = boardListSource.Count();
+
+
                         string pjbd = File.ReadAllText(fileDialog.FileNames[i]);
                         JObject board = JObject.Parse(pjbd);
                         JToken? spaceList = board["spaceList"];
                         JToken? boardInfo = board["boardInfo"];
 
-                        //Replace object names with their respective IDs
-                        for (int k = 0; k < spaceList?.Count(); k++)
+                        JArray instList = new JArray();
+                        //Convert RPK Nodes to PP Format
+                        for (int j = 0; j < spaceList?.Count(); j++)
                         {
-                            for (int j = 0; j < schema?.Count(); j++)
+                            string nodeType = spaceList[j]["__RPK_Constructor__"].ToString();
+                            if (nodeType == "pjspace")
                             {
-                                if (spaceList?[k]?[1]?.ToString() == (schema?[j]?[0]?.ToString()))
+                                JArray spaceData = (JArray)schemaJS["ppbTemplateSchema"]["boardspace"]["template"].DeepClone();
+                                if (schemaJS["ppbTemplateSchema"]["boardspace"]["vars"] is JObject vars)
                                 {
-                                    spaceList?[k]?[1]?.Replace(schema?[j]?[1]?.ToObject<int>());
+                                    var names = vars.Properties().Select(p => p.Name).ToArray();
+                                    for (int k = 0; k < names.Length; k++)
+                                    {
+                                        try
+                                        {
+                                            string name = names[k];
+                                            string var = vars[names[k]].ToString();
+                                            JToken? value = spaceData.SelectToken(name);
+                                            JToken? replaceValue = spaceList[j].SelectToken(var);
+                                            if ((replaceValue != null) && (value != null))
+                                            {
+                                                value.Replace(replaceValue);
+                                            } else
+                                            {
+                                                Console.WriteLine($"Instance #{j}: Value \"{var}\" does not exist.");
+                                            }
+                                            //spaceData.SelectToken(names[k]).Replace(spaceList[j].SelectToken(vars.SelectToken(names[k]).ToString()));
+                                        } catch (System.Exception ex)
+                                        {
+                                            Console.WriteLine(ex);
+                                        }
+
+                                    }
+                                    spaceData.SelectToken(instIndexDatapath).Replace(spaceList[j]["name"].ToObject<int>());
+                                    spaceData.SelectToken(instTypeDatapath).Replace(PObjectNameToID("boardspace"));
+                                    instList.Add(spaceData);
+                                }
+                            } else if (nodeType == "pjobject")
+                            {
+                                string objectType = spaceList[j]["object_type"].ToString();
+                                JArray spaceData = (JArray)schemaJS["ppbTemplateSchema"][objectType]["template"].DeepClone();
+                                if (schemaJS["ppbTemplateSchema"][objectType]["vars"] is JObject vars)
+                                {
+                                    var names = vars.Properties().Select(p => p.Name).ToArray();
+                                    for (int k = 0; k < names.Length; k++)
+                                    {
+                                        try
+                                        {
+                                            string name = names[k];
+                                            string var = vars[names[k]].ToString();
+                                            JToken? value = spaceData.SelectToken(name);
+                                            JToken? replaceValue = spaceList[j].SelectToken(var);
+                                            if ((replaceValue != null) && (value != null))
+                                            {
+                                                value.Replace(replaceValue);
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine($"Instance #{j}: Value \"{var}\" does not exist.");
+                                            }
+                                            //spaceData.SelectToken(names[k]).Replace(spaceList[j].SelectToken(vars.SelectToken(names[k]).ToString()));
+                                        }
+                                        catch (System.Exception ex)
+                                        {
+                                            Console.WriteLine(ex);
+                                        }
+
+                                    }
+                                    spaceData.SelectToken(instIndexDatapath).Replace(spaceList[j]["name"].ToObject<int>());
+                                    spaceData.SelectToken(instTypeDatapath).Replace(PObjectNameToID(spaceList[j]["object_type"].ToString()));
+                                    instList.Add(spaceData);
                                 }
                             }
                         }
 
-                        //Add BG Texture
-                        string? textureListDatapath = schemaJS?["datapathSchema"]?["textureList"]?.ToString();
-                        JToken? textureListSource = dataJS?.SelectToken(textureListDatapath);
+                        ////Replace object names with their respective IDs
+                        //for (int k = 0; k < spaceList?.Count(); k++)
+                        //{
+                        //    for (int j = 0; j < schema?.Count(); j++)
+                        //    {
+                        //        if (spaceList?[k]?[1]?.ToString() == (schema?[j]?[0]?.ToString()))
+                        //        {
+                        //            spaceList?[k]?[1]?.Replace(schema?[j]?[1]?.ToObject<int>());
+                        //        }
+                        //    }
+                        //}
 
-                        List<int> missingTextureList = new List<int>();
-                        for (int j = 0; j < textureListSource?.Count(); j++)
-                        {
-                            JToken? textureEntry = textureListSource[j]?[0];
-                            if (textureEntry?.ToString() != "DUMMYTEX")
-                            {
-                                missingTextureList.Add(j);
-                            }
+                        //Inject textures
+                        string? bgTex = board?["spriteList"]?["bg"]?[0]?["buff"]?.ToString();
+                        string bgFilename = "bg" + Path.GetFileNameWithoutExtension(fileDialog.FileNames[i]) + "-default-000.jpg";
+                        int? bgID = null;
+
+                        string? thumbTex = board?["spriteList"]?["thumb"]?["buff"]?.ToString();
+                        string thumbFilename = "boardthumb-default-" + boardID.ToString("D3") + ".jpg";
+                        int? thumbID = null;
+
+                        string? previewTex = board?["spriteList"]?["preview"]?["buff"]?.ToString();
+                        string previewFilename = "boardpreview-default-" + boardID.ToString("D3") + ".jpg";
+                        int? previewID = null;
+
+                        if (bgTex != null) {
+                            bgID = InjectTexture(bgTex, bgFilename);
                         }
-
-                        JToken? spriteList = board["spriteList"];
-
-                        string filename = "bg" + Path.GetFileNameWithoutExtension(fileDialog.FileNames[i]) + "-default-000.jpg";
-                        BitmapImage bgImage = BitmapFromBase64(spriteList["bg"][0]["buff"].ToString());
-                        BitmapEncoder encoder = new JpegBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(bgImage));
-
-                        using (var fs = new System.IO.FileStream(Settings.packagePath + "/" + filename, System.IO.FileMode.Create))
+                        if (thumbTex != null)
                         {
-                            encoder.Save(fs);
+                            thumbID = InjectTexture(thumbTex, thumbFilename);
                         }
-
-
-                        JArray bgData = (JArray)schemaJS["templateSchema"]["texture"].DeepClone();
-                        bgData[7][0][7][0][0] = filename;
-                        if (textureListSource is JArray textureListArray)
+                        if (previewTex != null)
                         {
-                            textureListArray.Add(bgData);
+                            previewID = InjectTexture(previewTex, previewFilename);
                         }
 
 
@@ -691,8 +956,11 @@ namespace PPManager
                         //Add room
                         JArray room = (JArray)schemaJS["templateSchema"]["boardRoom"].DeepClone();
                         room[0] = boardInfo["name"];
-                        room[6][0][14][0][1] = 331;
-                        room[6][1][14] = spaceList;
+                        if (bgID != null)
+                        {
+                            room[6][0][14][0][1] = bgID;
+                        }
+                        room[6][1][14] = instList;
 
                         string? roomListDatapath = schemaJS?["datapathSchema"]?["roomList"]?.ToString();
                         JToken? roomListSource = dataJS?.SelectToken(roomListDatapath);
@@ -709,22 +977,19 @@ namespace PPManager
                         boardData[5][1][4][1][1] = boardInfo["BGMPinch"];
                         boardData[5][1][5][1][1] = boardInfo["BGMNight"];
 
-                        string? boardListDatapath = schemaJS?["datapathSchema"]?["boardList"]?.ToString();
-                        JToken? boardListSource = dataJS?.SelectToken(boardListDatapath);
-                        int boardID = 0;
                         if (boardListSource is JArray boardListArray)
                         {
                             boardListArray.Add(boardData);
-                            boardID = boardListArray.Count;
                         }
 
                         //Add board data to board select
                         JArray menuBoardEntry = (JArray)schemaJS["templateSchema"]["menuBoardEntry"].DeepClone();
                         JToken? schemaMenuBoardX = schemaJS["menuBoardX"];
-                        int menuBoardX = boardID % 3;
+                        int boardSelPos = boardID - 1 - schemaJS["unusedBoards"].ToObject<int>();
+                        int menuBoardX = boardSelPos % 3;
                         menuBoardX *= schemaMenuBoardX[menuBoardX].ToObject<int>();
                         menuBoardEntry[0][0] = menuBoardX;
-                        menuBoardEntry[0][1] = schemaJS["menuBoardYinc"].ToObject<int>() * ((boardID / 3) + 1);
+                        menuBoardEntry[0][1] = schemaJS["menuBoardYinc"].ToObject<int>() * ((boardSelPos / 3) + 1);
                         menuBoardEntry[5][2] = boardID;
 
                         string? menuBoardEntriesDatapath = schemaJS?["datapathSchema"]?["menuBoardEntries"]?.ToString();
